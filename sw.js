@@ -1,5 +1,5 @@
 // Grain PWA Service Worker — cache-first strategy
-const CACHE_NAME = 'grain-v1';
+const CACHE_NAME = 'grain-v2';
 
 const STATIC_ASSETS = [
   '/',

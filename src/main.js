@@ -7,9 +7,6 @@ import { App } from './ui/app.js';
 
 // Initialize on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', async () => {
-  // Set image area to empty state initially
-  document.getElementById('imageArea').classList.add('image-area--empty');
-
   const app = new App();
 
   try {

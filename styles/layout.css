@@ -96,6 +96,15 @@
   padding-right: var(--safe-right);
 }
 
+/* ── Nav groups (main / edit sub-nav) ── */
+/* Each group fills the full nav width and mirrors the parent flex layout */
+.nav-group {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-around;
+}
+
 /* ── Undo bar positioning ── */
 .undo-bar {
   top: calc(var(--safe-top) + var(--space-3));

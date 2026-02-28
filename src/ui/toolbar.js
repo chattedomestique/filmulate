@@ -1,10 +1,10 @@
 /**
  * Toolbar — manages bottom nav, tool strip, and all tool sheets
  *
- * Interaction Design compliance:
- * - One active tool at a time (progressive disclosure)
- * - Each tool sheet has max one primary control
- * - No persistent sidebars — image is always primary
+ * Edit mode flow:
+ *   Main nav → tap Edit → nav swaps to edit sub-nav (Exposure / Latitude /
+ *   Diffusion / Grain).  Tap any → shows ONE slider sheet.  Tap Done → back
+ *   to main nav.  Only one slider is ever visible at a time.
  */
 
 import { BottomSheet } from './bottom-sheet.js';
@@ -20,16 +20,14 @@ export class Toolbar {
 
     this._activeSheet = null;
     this._activeNav = null;
+    this._inEditMode = false;
+    this._editNavSetup = false;
 
-    // DOM refs
     this._navButtons = {};
     this._sheetContainer = null;
     this._filmStrip = null;
-
-    // Tool sheets
     this._sheets = {};
 
-    // Current state
     this._state = {
       exposure: 0,
       dr_amount: 0,
@@ -65,8 +63,7 @@ export class Toolbar {
 
   _setupNavListeners() {
     const nav = this._navButtons;
-
-    nav.edit?.addEventListener('click', () => this._openTool('edit'));
+    nav.edit?.addEventListener('click', () => this._enterEditMode());
     nav.film?.addEventListener('click', () => this._openTool('film'));
     nav.border?.addEventListener('click', () => this._openTool('border'));
     nav.export?.addEventListener('click', () => this._handleExport());
@@ -75,12 +72,10 @@ export class Toolbar {
   _buildFilmStrip() {
     const wrapper = document.getElementById('toolStripWrapper');
     if (!wrapper) return;
-
     this._filmStrip = new FilmStrip({
       pipeline: this.pipeline,
       onSelect: (stock) => this._onStockSelect(stock),
     });
-
     const el = this._filmStrip.build();
     wrapper.innerHTML = '';
     wrapper.appendChild(el);
@@ -97,9 +92,7 @@ export class Toolbar {
     undoBtn.textContent = '↩';
     undoBtn.disabled = true;
     undoBtn.id = 'undoBtn';
-    undoBtn.addEventListener('click', () => {
-      if (this.undoManager) this.undoManager.undo();
-    });
+    undoBtn.addEventListener('click', () => { if (this.undoManager) this.undoManager.undo(); });
 
     const redoBtn = document.createElement('button');
     redoBtn.className = 'undo-btn';
@@ -108,80 +101,113 @@ export class Toolbar {
     redoBtn.textContent = '↪';
     redoBtn.disabled = true;
     redoBtn.id = 'redoBtn';
-    redoBtn.addEventListener('click', () => {
-      if (this.undoManager) this.undoManager.redo();
-    });
+    redoBtn.addEventListener('click', () => { if (this.undoManager) this.undoManager.redo(); });
 
     bar.appendChild(undoBtn);
     bar.appendChild(redoBtn);
     document.getElementById('app').appendChild(bar);
   }
 
-  // ── Tool activation ────────────────────────────────────────
+  // ── Edit mode ─────────────────────────────────────────────
+  // Clicking Edit swaps the bottom nav to the edit sub-nav (Exposure /
+  // Latitude / Diffusion / Grain).  Each icon opens exactly one slider.
 
-  _openTool(toolId) {
-    // Close current sheet if same tool — toggle
+  _enterEditMode() {
+    this._closeCurrentSheet();
+    this._inEditMode = true;
+    this._setNavActive(null);
+
+    document.getElementById('navGroupMain').hidden = true;
+    document.getElementById('navGroupEdit').hidden = false;
+
+    if (!this._editNavSetup) {
+      this._setupEditNavListeners();
+      this._editNavSetup = true;
+    }
+  }
+
+  _exitEditMode() {
+    this._closeCurrentSheet();
+    this._inEditMode = false;
+    this._activeNav = null;
+
+    document.getElementById('navGroupEdit').hidden = true;
+    document.getElementById('navGroupMain').hidden = false;
+  }
+
+  _setupEditNavListeners() {
+    document.getElementById('navEditDone')
+      ?.addEventListener('click', () => this._exitEditMode());
+    document.getElementById('navEditExposure')
+      ?.addEventListener('click', () => this._openEditSubTool('exposure'));
+    document.getElementById('navEditDR')
+      ?.addEventListener('click', () => this._openEditSubTool('dr'));
+    document.getElementById('navEditDiffusion')
+      ?.addEventListener('click', () => this._openEditSubTool('diffusion'));
+    document.getElementById('navEditGrain')
+      ?.addEventListener('click', () => this._openEditSubTool('grain'));
+  }
+
+  _openEditSubTool(toolId) {
+    // Toggle: tap same icon again to close
     if (this._activeSheet && this._activeNav === toolId) {
       this._closeCurrentSheet();
       return;
     }
-
-    // Close current sheet
     this._closeCurrentSheet();
 
-    // Build and open requested sheet
     const builders = {
-      edit:   () => this._buildEditSheet(),
-      film:   () => this._buildFilmSheet(),
-      border: () => this._buildBorderSheet(),
+      exposure:  () => this._buildExposureSheet(),
+      dr:        () => this._buildDRSheet(),
+      diffusion: () => this._buildDiffusionSheet(),
+      grain:     () => this._buildGrainSheet(),
     };
-
     if (!builders[toolId]) return;
 
     this._activeNav = toolId;
-    this._setNavActive(toolId);
-
+    this._setEditSubNavActive(toolId);
     const sheet = builders[toolId]();
     sheet.open();
     this._activeSheet = sheet;
   }
 
-  _closeCurrentSheet() {
-    if (this._activeSheet) {
-      this._activeSheet.close();
-      this._activeSheet = null;
-    }
-    if (this._activeNav) {
-      this._setNavActive(null);
-      this._activeNav = null;
-    }
-  }
-
-  _setNavActive(toolId) {
-    for (const [id, btn] of Object.entries(this._navButtons)) {
-      btn?.classList.toggle('active', id === toolId);
+  _setEditSubNavActive(toolId) {
+    const map = {
+      exposure:  'navEditExposure',
+      dr:        'navEditDR',
+      diffusion: 'navEditDiffusion',
+      grain:     'navEditGrain',
+    };
+    for (const [id, btnId] of Object.entries(map)) {
+      document.getElementById(btnId)?.classList.toggle('active', id === toolId);
     }
   }
 
-  // ── Edit sheet ─────────────────────────────────────────────
+  // ── Individual edit sheets (one slider each) ──────────────
 
-  _buildEditSheet() {
+  _buildExposureSheet() {
     const container = document.createElement('div');
-
-    // Exposure slider (primary)
-    const exposureSlider = new Slider({
+    container.appendChild(new Slider({
       name: 'Exposure',
       min: -2, max: 2, step: 0.05,
       value: this._state.exposure,
       format: (v) => (v >= 0 ? '+' : '') + v.toFixed(1) + ' EV',
       onChange: (v) => this._applyParam('exposure', v),
       onCommit: (v) => this._commit({ exposure: v }),
-    });
+    }).build());
 
-    container.appendChild(exposureSlider.build());
-    container.appendChild(this._divider());
+    return new BottomSheet({
+      id: 'sheet-exposure',
+      title: 'Exposure',
+      onClose: () => {
+        this._setEditSubNavActive(null);
+        if (this._activeNav === 'exposure') this._activeNav = null;
+      },
+    }).build(container).mount(this._sheetContainer);
+  }
 
-    // Dynamic range slider
+  _buildDRSheet() {
+    const container = document.createElement('div');
     const drSlider = new Slider({
       name: 'Latitude',
       subtitle: 'dynamic range',
@@ -191,19 +217,28 @@ export class Toolbar {
       onChange: (v) => this._applyParam('dr_amount', v),
       onCommit: (v) => this._commit({ dr_amount: v }),
     });
+    const drEl = drSlider.build(); // build() first, then addSecondary (API requirement)
+    drSlider.addSecondary(this._buildToggle(
+      'Clip highlights hard', this._state.clip_highlights, (v) => {
+        this._applyParam('clip_highlights', v);
+        this._commit({ clip_highlights: v });
+      }
+    ));
+    container.appendChild(drEl);
 
-    // Secondary: clip highlights toggle
-    const clipToggle = this._buildToggle('Clip highlights hard', this._state.clip_highlights, (v) => {
-      this._applyParam('clip_highlights', v);
-      this._commit({ clip_highlights: v });
-    });
+    return new BottomSheet({
+      id: 'sheet-dr',
+      title: 'Latitude',
+      onClose: () => {
+        this._setEditSubNavActive(null);
+        if (this._activeNav === 'dr') this._activeNav = null;
+      },
+    }).build(container).mount(this._sheetContainer);
+  }
 
-    drSlider.addSecondary(clipToggle);
-    container.appendChild(drSlider.build());
-    container.appendChild(this._divider());
-
-    // Soften slider
-    const softenSlider = new Slider({
+  _buildDiffusionSheet() {
+    const container = document.createElement('div');
+    container.appendChild(new Slider({
       name: 'Diffusion',
       subtitle: 'analog softness',
       min: 0, max: 1, step: 0.01,
@@ -211,11 +246,20 @@ export class Toolbar {
       format: (v) => Math.round(v * 100) + '%',
       onChange: (v) => this._applyParam('soften', v),
       onCommit: (v) => this._commit({ soften: v }),
-    });
-    container.appendChild(softenSlider.build());
-    container.appendChild(this._divider());
+    }).build());
 
-    // Grain slider
+    return new BottomSheet({
+      id: 'sheet-diffusion',
+      title: 'Diffusion',
+      onClose: () => {
+        this._setEditSubNavActive(null);
+        if (this._activeNav === 'diffusion') this._activeNav = null;
+      },
+    }).build(container).mount(this._sheetContainer);
+  }
+
+  _buildGrainSheet() {
+    const container = document.createElement('div');
     const grainSlider = new Slider({
       name: 'Grain',
       subtitle: 'ISO character',
@@ -228,44 +272,60 @@ export class Toolbar {
       onChange: (v) => this._applyParam('grain', v),
       onCommit: (v) => this._commit({ grain: v }),
     });
+    const grainEl = grainSlider.build(); // build() first, then addSecondary
+    grainSlider.addSecondary(this._buildIsoDots());
+    container.appendChild(grainEl);
 
-    // ISO dots indicator
-    const isoDots = this._buildIsoDots();
-    grainSlider.addSecondary(isoDots);
-    container.appendChild(grainSlider.build());
-
-    const sheet = new BottomSheet({
-      id: 'sheet-edit',
-      title: 'Adjustments',
+    return new BottomSheet({
+      id: 'sheet-grain',
+      title: 'Grain',
       onClose: () => {
-        if (this._activeNav === 'edit') this._setNavActive(null);
+        this._setEditSubNavActive(null);
+        if (this._activeNav === 'grain') this._activeNav = null;
       },
-    });
-
-    sheet.build(container).mount(this._sheetContainer);
-    return sheet;
+    }).build(container).mount(this._sheetContainer);
   }
 
-  _buildIsoDots() {
-    const row = document.createElement('div');
-    row.className = 'iso-indicator';
+  // ── Other tool sheets (Film, Border) ──────────────────────
 
-    const label = document.createElement('span');
-    label.className = 'iso-label';
-    label.textContent = 'ISO';
-
-    const dots = document.createElement('div');
-    dots.className = 'iso-dots';
-
-    for (let i = 0; i < 5; i++) {
-      const dot = document.createElement('div');
-      dot.className = 'iso-dot';
-      dots.appendChild(dot);
+  _openTool(toolId) {
+    if (this._activeSheet && this._activeNav === toolId) {
+      this._closeCurrentSheet();
+      return;
     }
+    this._closeCurrentSheet();
 
-    row.appendChild(label);
-    row.appendChild(dots);
-    return row;
+    const builders = {
+      film:   () => this._buildFilmSheet(),
+      border: () => this._buildBorderSheet(),
+    };
+    if (!builders[toolId]) return;
+
+    this._activeNav = toolId;
+    this._setNavActive(toolId);
+    const sheet = builders[toolId]();
+    sheet.open();
+    this._activeSheet = sheet;
+  }
+
+  _closeCurrentSheet() {
+    if (this._activeSheet) {
+      this._activeSheet.close();
+      this._activeSheet = null;
+    }
+    if (!this._inEditMode) {
+      this._setNavActive(null);
+      this._activeNav = null;
+    } else {
+      this._setEditSubNavActive(null);
+      this._activeNav = null;
+    }
+  }
+
+  _setNavActive(toolId) {
+    for (const [id, btn] of Object.entries(this._navButtons)) {
+      btn?.classList.toggle('active', id === toolId);
+    }
   }
 
   // ── Film sheet ─────────────────────────────────────────────
@@ -273,7 +333,6 @@ export class Toolbar {
   _buildFilmSheet() {
     const container = document.createElement('div');
 
-    // Stock info display
     const stockDetail = document.createElement('div');
     stockDetail.className = 'stock-detail';
     stockDetail.id = 'stockDetail';
@@ -283,17 +342,12 @@ export class Toolbar {
     stockName.id = 'stockName';
 
     const currentStock = this._state.film_stock;
-    if (currentStock) {
-      stockName.textContent = currentStock.name;
-    } else {
-      stockName.textContent = 'No film selected';
-      stockName.style.color = 'var(--text-muted)';
-    }
+    stockName.textContent = currentStock ? currentStock.name : 'No film selected';
+    if (!currentStock) stockName.style.color = 'var(--text-muted)';
 
     stockDetail.appendChild(stockName);
     container.appendChild(stockDetail);
 
-    // Stock description
     const desc = document.createElement('p');
     desc.className = 'stock-description';
     desc.id = 'stockDesc';
@@ -302,53 +356,38 @@ export class Toolbar {
 
     container.appendChild(this._divider());
 
-    // Strength slider
-    const strengthSlider = new Slider({
+    container.appendChild(new Slider({
       name: 'Strength',
       min: 0, max: 1, step: 0.01,
       value: this._state.film_strength,
       format: (v) => Math.round(v * 100) + '%',
       onChange: (v) => this._applyParam('film_strength', v),
       onCommit: (v) => this._commit({ film_strength: v }),
-    });
-    container.appendChild(strengthSlider.build());
+    }).build());
 
     const sheet = new BottomSheet({
       id: 'sheet-film',
       title: 'Film Stock',
-      onClose: () => {
-        if (this._activeNav === 'film') this._setNavActive(null);
-      },
+      onClose: () => { if (this._activeNav === 'film') this._setNavActive(null); },
     });
-
     sheet.build(container).mount(this._sheetContainer);
     return sheet;
   }
 
   _onStockSelect(stock) {
     this._state.film_stock = stock;
-
-    // Update pipeline
-    this.pipeline.setParams({
-      film_stock: stock,
-      film_enabled: !!stock,
-    });
+    this.pipeline.setParams({ film_stock: stock, film_enabled: !!stock });
     this.pipeline.setPassEnabled('film_emulate', !!stock);
 
-    // Update film sheet UI if open
     const nameEl = document.getElementById('stockName');
     const descEl = document.getElementById('stockDesc');
     if (nameEl) {
       nameEl.textContent = stock ? stock.name : 'No film selected';
       nameEl.style.color = stock ? '' : 'var(--text-muted)';
     }
-    if (descEl) {
-      descEl.textContent = stock?.description || '';
-    }
+    if (descEl) descEl.textContent = stock?.description || '';
 
-    // Haptic
     if ('vibrate' in navigator) navigator.vibrate(10);
-
     this._commit({ film_stock: stock });
   }
 
@@ -357,19 +396,17 @@ export class Toolbar {
   _buildBorderSheet() {
     const container = document.createElement('div');
 
-    // Color picker (primary)
-    const colorPicker = new ColorPicker({
+    container.appendChild(new ColorPicker({
       onChange: (color) => {
         const rgb = this._hexToRgb(color);
         this._applyParam('border_color', rgb);
         this._commit({ border_color: rgb });
       },
-    });
-    container.appendChild(colorPicker.build());
+    }).build());
+
     container.appendChild(this._divider());
 
-    // Border width slider
-    const sizeSlider = new Slider({
+    container.appendChild(new Slider({
       name: 'Border Width',
       min: 0, max: 0.2, step: 0.005,
       value: this._state.border_size,
@@ -379,11 +416,10 @@ export class Toolbar {
         this.pipeline.setPassEnabled('border', v > 0);
       },
       onCommit: (v) => this._commit({ border_size: v }),
-    });
-    container.appendChild(sizeSlider.build());
+    }).build());
+
     container.appendChild(this._divider());
 
-    // Shape toggle: Original | Square
     const shapeLabel = document.createElement('div');
     shapeLabel.className = 'sheet-title';
     shapeLabel.textContent = 'Shape';
@@ -396,19 +432,15 @@ export class Toolbar {
     const origBtn = document.createElement('button');
     origBtn.className = 'toggle-btn toggle-btn--active';
     origBtn.textContent = 'Original';
-    origBtn.id = 'shapeOriginal';
-
     const squareBtn = document.createElement('button');
     squareBtn.className = 'toggle-btn';
     squareBtn.textContent = 'Square';
-    squareBtn.id = 'shapeSquare';
 
     origBtn.addEventListener('click', () => {
       origBtn.classList.add('toggle-btn--active');
       squareBtn.classList.remove('toggle-btn--active');
       this._applyParam('border_square', false);
     });
-
     squareBtn.addEventListener('click', () => {
       squareBtn.classList.add('toggle-btn--active');
       origBtn.classList.remove('toggle-btn--active');
@@ -422,52 +454,10 @@ export class Toolbar {
     const sheet = new BottomSheet({
       id: 'sheet-border',
       title: 'Border',
-      onClose: () => {
-        if (this._activeNav === 'border') this._setNavActive(null);
-      },
+      onClose: () => { if (this._activeNav === 'border') this._setNavActive(null); },
     });
-
     sheet.build(container).mount(this._sheetContainer);
     return sheet;
-  }
-
-  // ── Advanced effects sheet (accessed via Film sheet) ────────
-
-  buildAdvancedSheet() {
-    const container = document.createElement('div');
-
-    // Halation
-    const halationSlider = new Slider({
-      name: 'Halation',
-      subtitle: 'light bleed',
-      min: 0, max: 1, step: 0.01,
-      value: this._state.halation || 0,
-      format: (v) => Math.round(v * 100) + '%',
-      onChange: (v) => {
-        this._applyParam('halation', v);
-        this.pipeline.setPassEnabled('halation', v > 0);
-      },
-      onCommit: (v) => this._commit({ halation: v }),
-    });
-    container.appendChild(halationSlider.build());
-    container.appendChild(this._divider());
-
-    // Channel separation
-    const chanSepSlider = new Slider({
-      name: 'Separation',
-      subtitle: 'color shift',
-      min: 0, max: 1, step: 0.01,
-      value: this._state.channel_sep || 0,
-      format: (v) => Math.round(v * 100) + '%',
-      onChange: (v) => {
-        this._applyParam('channel_sep', v);
-        this.pipeline.setPassEnabled('channel_sep', v > 0);
-      },
-      onCommit: (v) => this._commit({ channel_sep: v }),
-    });
-    container.appendChild(chanSepSlider.build());
-
-    return container;
   }
 
   // ── State management ───────────────────────────────────────
@@ -479,19 +469,17 @@ export class Toolbar {
 
   _commit(changes) {
     Object.assign(this._state, changes);
-    if (this.undoManager) {
-      this.undoManager.push({ ...this._state });
-    }
+    if (this.undoManager) this.undoManager.push({ ...this._state });
     this.onStateChange({ ...this._state });
     this._updateUndoButtons();
   }
 
   _updateUndoButtons() {
     if (!this.undoManager) return;
-    const undoBtn = document.getElementById('undoBtn');
-    const redoBtn = document.getElementById('redoBtn');
-    if (undoBtn) undoBtn.disabled = !this.undoManager.canUndo();
-    if (redoBtn) redoBtn.disabled = !this.undoManager.canRedo();
+    const u = document.getElementById('undoBtn');
+    const r = document.getElementById('redoBtn');
+    if (u) u.disabled = !this.undoManager.canUndo();
+    if (r) r.disabled = !this.undoManager.canRedo();
   }
 
   // ── Export ─────────────────────────────────────────────────
@@ -499,20 +487,16 @@ export class Toolbar {
   async _handleExport() {
     this._closeCurrentSheet();
     this.onStateChange({ exporting: true });
-
     if ('vibrate' in navigator) navigator.vibrate(10);
 
     try {
       const blob = await this.pipeline.exportImageBlob(0.92);
       const url = URL.createObjectURL(blob);
-
       const a = document.createElement('a');
       a.href = url;
       a.download = `grain-${Date.now()}.jpg`;
       a.click();
-
       setTimeout(() => URL.revokeObjectURL(url), 10000);
-
       this.onStateChange({ exporting: false, exported: true });
     } catch (err) {
       console.error('Export failed:', err);
@@ -546,43 +530,53 @@ export class Toolbar {
 
     const track = document.createElement('span');
     track.className = 'toggle-switch__track';
-
     const thumb = document.createElement('span');
     thumb.className = 'toggle-switch__thumb';
 
     switchEl.appendChild(input);
     switchEl.appendChild(track);
     switchEl.appendChild(thumb);
-
     row.appendChild(labelEl);
     row.appendChild(switchEl);
+    return row;
+  }
 
+  _buildIsoDots() {
+    const row = document.createElement('div');
+    row.className = 'iso-indicator';
+    const label = document.createElement('span');
+    label.className = 'iso-label';
+    label.textContent = 'ISO';
+    const dots = document.createElement('div');
+    dots.className = 'iso-dots';
+    for (let i = 0; i < 5; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'iso-dot';
+      dots.appendChild(dot);
+    }
+    row.appendChild(label);
+    row.appendChild(dots);
     return row;
   }
 
   _hexToRgb(hex) {
-    const r = parseInt(hex.slice(1, 3), 16) / 255;
-    const g = parseInt(hex.slice(3, 5), 16) / 255;
-    const b = parseInt(hex.slice(5, 7), 16) / 255;
-    return [r, g, b];
+    return [
+      parseInt(hex.slice(1, 3), 16) / 255,
+      parseInt(hex.slice(3, 5), 16) / 255,
+      parseInt(hex.slice(5, 7), 16) / 255,
+    ];
   }
 
   // ── Enable/disable nav ─────────────────────────────────────
 
   enableNav(enabled = true) {
     for (const [id, btn] of Object.entries(this._navButtons)) {
-      if (id !== 'import') {
-        btn.disabled = !enabled;
-      }
+      if (id !== 'import') btn.disabled = !enabled;
     }
     document.getElementById('toolStripWrapper').hidden = !enabled;
   }
 
   updatePalette(palette) {
-    // Propagate extracted color palette to border sheet if open
-    if (this._activeNav === 'border') {
-      // Re-open to update
-    }
     this._extractedPalette = palette;
   }
 

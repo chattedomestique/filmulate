@@ -68,26 +68,55 @@
 
     <!-- Bottom Navigation -->
     <nav class="bottom-nav" id="bottomNav">
-      <button class="nav-item nav-item--import" id="navImport" aria-label="Import photo">
-        <span class="nav-item__icon">↑</span>
-        <span class="nav-item__label">Import</span>
-      </button>
-      <button class="nav-item" id="navEdit" aria-label="Edit" disabled>
-        <span class="nav-item__icon">◈</span>
-        <span class="nav-item__label">Edit</span>
-      </button>
-      <button class="nav-item" id="navFilm" aria-label="Film stock" disabled>
-        <span class="nav-item__icon">⬡</span>
-        <span class="nav-item__label">Film</span>
-      </button>
-      <button class="nav-item" id="navBorder" aria-label="Border" disabled>
-        <span class="nav-item__icon">▣</span>
-        <span class="nav-item__label">Border</span>
-      </button>
-      <button class="nav-item" id="navExport" aria-label="Export" disabled>
-        <span class="nav-item__icon">↓</span>
-        <span class="nav-item__label">Export</span>
-      </button>
+
+      <!-- Main navigation -->
+      <div class="nav-group" id="navGroupMain">
+        <button class="nav-item nav-item--import" id="navImport" aria-label="Import photo">
+          <span class="nav-item__icon">↑</span>
+          <span class="nav-item__label">Import</span>
+        </button>
+        <button class="nav-item" id="navEdit" aria-label="Edit" disabled>
+          <span class="nav-item__icon">◈</span>
+          <span class="nav-item__label">Edit</span>
+        </button>
+        <button class="nav-item" id="navFilm" aria-label="Film stock" disabled>
+          <span class="nav-item__icon">⬡</span>
+          <span class="nav-item__label">Film</span>
+        </button>
+        <button class="nav-item" id="navBorder" aria-label="Border" disabled>
+          <span class="nav-item__icon">▣</span>
+          <span class="nav-item__label">Border</span>
+        </button>
+        <button class="nav-item" id="navExport" aria-label="Export" disabled>
+          <span class="nav-item__icon">↓</span>
+          <span class="nav-item__label">Export</span>
+        </button>
+      </div>
+
+      <!-- Edit sub-navigation (replaces main nav when editing) -->
+      <div class="nav-group" id="navGroupEdit" hidden>
+        <button class="nav-item" id="navEditDone" aria-label="Done editing">
+          <span class="nav-item__icon">✕</span>
+          <span class="nav-item__label">Done</span>
+        </button>
+        <button class="nav-item" id="navEditExposure" aria-label="Exposure">
+          <span class="nav-item__icon">☀</span>
+          <span class="nav-item__label">Exposure</span>
+        </button>
+        <button class="nav-item" id="navEditDR" aria-label="Latitude">
+          <span class="nav-item__icon">▤</span>
+          <span class="nav-item__label">Latitude</span>
+        </button>
+        <button class="nav-item" id="navEditDiffusion" aria-label="Diffusion">
+          <span class="nav-item__icon">◎</span>
+          <span class="nav-item__label">Diffusion</span>
+        </button>
+        <button class="nav-item" id="navEditGrain" aria-label="Grain">
+          <span class="nav-item__icon">⋯</span>
+          <span class="nav-item__label">Grain</span>
+        </button>
+      </div>
+
     </nav>
 
     <!-- Hidden file input -->

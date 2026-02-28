@@ -27,7 +27,10 @@ export async function importImage(file) {
       img.src = url;
     });
 
-    const bitmap = await createImageBitmap(img);
+    // imageOrientation: 'none' — ignore EXIF rotation tags entirely.
+    // The user controls orientation manually; auto-rotation causes random flips
+    // across different browsers/images.
+    const bitmap = await createImageBitmap(img, { imageOrientation: 'none' });
     return bitmap;
   } finally {
     URL.revokeObjectURL(url);

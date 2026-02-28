@@ -10,6 +10,11 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Ensure the HTML `hidden` attribute always wins over component display rules */
+[hidden] {
+  display: none !important;
+}
+
 html, body {
   height: 100%;
   overflow: hidden;

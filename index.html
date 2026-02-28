@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <!-- iOS PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Grain">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- Theme -->
+  <meta name="theme-color" content="#1A1410">
+  <meta name="msapplication-TileColor" content="#1A1410">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/layout.css">
+
+  <title>Grain — Film Emulation</title>
+</head>
+<body>
+
+  <!-- App Root -->
+  <div id="app" class="app">
+
+    <!-- Image Area -->
+    <main class="image-area" id="imageArea">
+      <!-- Empty state -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-state__inner">
+          <h1 class="wordmark">Grain</h1>
+          <p class="empty-state__tagline">Film emulation. Not filters.</p>
+          <button class="btn btn--primary btn--lg" id="importBtn">
+            <span class="btn__icon">↑</span>
+            Import a photo
+          </button>
+          <p class="empty-state__hint">Or drag & drop an image here</p>
+        </div>
+      </div>
+
+      <!-- Canvas container -->
+      <div class="canvas-container" id="canvasContainer" hidden>
+        <canvas id="outputCanvas"></canvas>
+        <!-- Border overlay (non-destructive, CSS layer) -->
+        <div class="border-overlay" id="borderOverlay"></div>
+      </div>
+    </main>
+
+    <!-- Tool strip (shown when image loaded) -->
+    <div class="tool-strip-wrapper" id="toolStripWrapper" hidden>
+      <div class="tool-strip" id="toolStrip" role="tablist">
+        <!-- Film stock pills — populated by film-strip.js -->
+      </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" id="bottomNav">
+      <button class="nav-item nav-item--import" id="navImport" aria-label="Import photo">
+        <span class="nav-item__icon">↑</span>
+        <span class="nav-item__label">Import</span>
+      </button>
+      <button class="nav-item" id="navEdit" aria-label="Edit" disabled>
+        <span class="nav-item__icon">◈</span>
+        <span class="nav-item__label">Edit</span>
+      </button>
+      <button class="nav-item" id="navFilm" aria-label="Film stock" disabled>
+        <span class="nav-item__icon">⬡</span>
+        <span class="nav-item__label">Film</span>
+      </button>
+      <button class="nav-item" id="navBorder" aria-label="Border" disabled>
+        <span class="nav-item__icon">▣</span>
+        <span class="nav-item__label">Border</span>
+      </button>
+      <button class="nav-item" id="navExport" aria-label="Export" disabled>
+        <span class="nav-item__icon">↓</span>
+        <span class="nav-item__label">Export</span>
+      </button>
+    </nav>
+
+    <!-- Hidden file input -->
+    <input type="file" id="fileInput" accept="image/*" hidden aria-hidden="true">
+
+    <!-- Bottom sheets — injected by JS -->
+    <div id="sheetContainer"></div>
+
+    <!-- Toast / notification -->
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay" hidden>
+      <div class="loading-spinner"></div>
+    </div>
+
+  </div>
+
+  <!-- App Entry Point -->
+  <script type="module" src="src/main.js"></script>
+
+</body>
+</html>

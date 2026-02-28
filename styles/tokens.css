@@ -1,0 +1,76 @@
+/* ============================================================
+   GRAIN — Design Tokens
+   Claymorphic Neobrutalism
+   ============================================================ */
+
+:root {
+  /* ── Surfaces ── */
+  --surface-bg: #F0EBE1;         /* Warm cream — like photo paper */
+  --surface-card: #FDFAF5;       /* Near-white card surface */
+  --surface-dark: #1A1410;       /* Near-black */
+  --surface-mid: #2E2721;        /* Dark warm tone for bottom bar / sheets */
+
+  /* ── Accent ── */
+  --accent-primary: #D4522A;     /* Fujifilm red-orange */
+  --accent-secondary: #E8C547;   /* Warm yellow highlight */
+  --accent-cool: #4A7FA5;        /* Muted teal for contrast */
+
+  /* ── Text ── */
+  --text-primary: #1A1410;
+  --text-secondary: #6B5E52;
+  --text-inverse: #F0EBE1;
+  --text-muted: #9E8E82;
+
+  /* ── Neobrutalist borders & shadows ── */
+  --border: 2.5px solid #1A1410;
+  --border-thin: 1.5px solid #1A1410;
+  --border-muted: 2px solid #9E8E82;
+  --shadow-hard: 4px 4px 0 #1A1410;
+  --shadow-hard-sm: 2px 2px 0 #1A1410;
+  --shadow-hard-lg: 6px 6px 0 #1A1410;
+  --shadow-hard-inset: inset 2px 2px 0 #1A1410;
+
+  /* ── Claymorphic radius ── */
+  --radius-card: 18px;
+  --radius-pill: 999px;
+  --radius-btn: 12px;
+  --radius-sheet: 24px;
+  --radius-sm: 8px;
+
+  /* ── Typography ── */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'DM Mono', 'Courier New', monospace;
+
+  /* ── Spacing ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ── Touch targets ── */
+  --touch-min: 44px;
+
+  /* ── Transitions ── */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --duration-fast: 120ms;
+  --duration-med: 240ms;
+  --duration-slow: 380ms;
+
+  /* ── Safe areas (iOS) ── */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* ── Bottom nav height ── */
+  --nav-height: 68px;
+  --tool-strip-height: 52px;
+}
